@@ -233,9 +233,10 @@ class CaptchaGenerator:
     def create_image_char(self, size: Tuple[int, int], background: float,
                           character: Union[str, bytes], char_color,
                           char_pos: Tuple[float, float], char_font: Any
-                          ) -> Image.Image:
-        """Create a PIL image object of specified size and color that
-        has the provided characterin.
+                          ) -> Tuple[Image.Image, Image.Image]:
+        """Create tuple of a PIL image objects of specified size containing
+        provided character. First image is created using specified colors.
+        Second mask image contains black background and white character.
 
         Parameters
         ----------
@@ -248,14 +249,19 @@ class CaptchaGenerator:
 
         Returns
         -------
-        Image
+        Tuple[Image, Image]
         """
 
         image = Image.new("RGBA", size, background)
         draw = ImageDraw.Draw(image)
         draw.text(char_pos, character, fill=char_color, font=char_font)
 
-        return image
+        mask_image = Image.new("RGBA", size, (0, 0, 0))
+        mask_draw = ImageDraw.Draw(mask_image)
+        mask_draw.text(char_pos, character, fill=(
+            255, 255, 255), font=char_font)
+
+        return image, mask_image
 
     def add_rand_circle_to_image(self, image: Image.Image, min_size: int,
                                  max_size: int, circle_color: str = None
@@ -450,8 +456,9 @@ class CaptchaGenerator:
                                image_size: Tuple[int, int], lines: int = 2,
                                background_color: RGBModel = None,
                                rotation_limits: Tuple[int, int] = (-55, 55)
-                               ) -> CaptchaCharModel:
-        """Generate an one-char image with a random positioned-rotated character.
+                               ) -> Tuple[CaptchaCharModel, CaptchaCharModel]:
+        """Generate a tuple of one-char image with a random positioned-rotated character
+        and its black and white variant.
 
         Parameters
         ----------
@@ -466,7 +473,7 @@ class CaptchaGenerator:
 
         Returns
         -------
-        CaptchaCharModel
+        Tuple[CaptchaCharModel, CaptchaCharModel]
         """
 
         # If not background color provided, generate a random one
@@ -487,15 +494,21 @@ class CaptchaGenerator:
         )
 
         # Create an image of specified size, background color and character
-        image = self.create_image_char(
+        image, mask_image = self.create_image_char(
             image_size, background_color["color"], character,
             character_color, character_pos, character_font
         )
 
         # Random rotate the created image between -55? and +55?
+        rotation = randint(rotation_limits[0], rotation_limits[1])
         image = image.rotate(
-            randint(rotation_limits[0], rotation_limits[1]),
+            rotation,
             fillcolor=background_color["color"]
+        )
+
+        mask_image = mask_image.rotate(
+            rotation,
+            fillcolor=(0, 0, 0)
         )
 
         # Add some random lines to image
@@ -507,12 +520,12 @@ class CaptchaGenerator:
             self.add_rand_noise_to_image(image, 200)
 
         # Return the generated image
-        return CaptchaCharModel(image=image, character=character)
+        return CaptchaCharModel(image=image, character=character), CaptchaCharModel(image=mask_image, character=character)
 
     def gen_captcha_image(self, difficult_level: int = 2,
                           chars_mode: str = "nums", multicolor: bool = False,
-                          margin: bool = True) -> CaptchaModel:
-        """Generate an image captcha.
+                          margin: bool = True, char_num: int = 4) -> CaptchaModel:
+        """Generate a tuple of an image captcha and a masked image of the original characters.
 
         Parameters
         ----------
@@ -524,10 +537,12 @@ class CaptchaGenerator:
             by default False
         margin : bool, optional
             by default True
+        char_num : int, optional
+            by default 4
 
         Returns
         -------
-        CaptchaModel
+        Tuple[CaptchaModel, CaptchaModel]
         """
 
         # Limit difficult level argument if out of expected range
@@ -555,8 +570,9 @@ class CaptchaGenerator:
         # random char color in contrast to the generated
         # background, a random font and font size, and random position-rotation
         one_char_images = []
+        mask_one_char_images = []
         image_characters = ""
-        for _ in range(0, 4):
+        for _ in range(0, char_num):
             # Generate a random character
             if chars_mode == "nums":
                 character = str(randint(0, 9))
@@ -574,18 +590,22 @@ class CaptchaGenerator:
 
             # Generate a random character, a random character color
             # in contrast to background and a random position for it
-            captcha = self.gen_captcha_char_image(
+            captcha, mask_captcha = self.gen_captcha_char_image(
                 character, self.one_char_image_size, 2,
                 image_background  # type: ignore
             )
             image = captcha["image"]
+            mask_image = mask_captcha["image"]
+
             image_characters = image_characters + captcha["character"]
 
             # Add the generated image to the list
             one_char_images.append(image)
+            mask_one_char_images.append(mask_image)
 
         # Join the 4 characters images into one
         image = self.images_join_horizontal(one_char_images)
+        mask_image = self.images_join_horizontal(mask_one_char_images)
 
         # Add one horizontal random line to full image
         for _ in range(0, DIFFICULT_LEVELS_VALUES[difficult_level][0]):
@@ -609,13 +629,13 @@ class CaptchaGenerator:
             image = new_image
 
         # Return generated image captcha
-        return CaptchaModel(image=image, characters=image_characters)
+        return CaptchaModel(image=image, characters=image_characters), CaptchaModel(image=mask_image, characters=image_characters)
 
     def gen_math_captcha_image(self, difficult_level: int = 0,
                                multicolor: bool = False,
                                allow_multiplication: bool = False,
                                margin: bool = True) -> MathsCaptchaModel:
-        """Generate a math image captcha.
+        """Generate a tuple of a math image captcha and a masked image of the original characters.
 
         Parameters
         ----------
@@ -630,7 +650,7 @@ class CaptchaGenerator:
 
         Returns
         -------
-        MathsCaptchaModel
+        Tuple[MathsCaptchaModel, MathsCaptchaModel]
         """
 
         # Limit difficult level argument if out of expected range
@@ -657,10 +677,11 @@ class CaptchaGenerator:
         character = choice(possible_chars)
 
         # Generate operator image
-        captcha = self.gen_captcha_char_image(
+        captcha, mask_captcha = self.gen_captcha_char_image(
             character, self.one_char_image_size, 0, img_background, (-5, 5)
         )
         img_operator = captcha["image"]
+        mask_operator = mask_captcha["image"]
         operation = captcha["character"]
 
         # Generate random equation with non-decimal and positive result value
@@ -686,6 +707,7 @@ class CaptchaGenerator:
         # in contrast to the generated
         # background, a random font and font size, and random position-rotation
         one_char_images = []
+        mask_one_char_images = []
         for char in equation_str:
             # Generate a RGB background color for each iteration
             # if multicolor enabled
@@ -694,16 +716,19 @@ class CaptchaGenerator:
             # Generate character image with random color
             # in contrast to background
             # and a random position for it
-            captcha = self.gen_captcha_char_image(
+            captcha, mask_captcha = self.gen_captcha_char_image(
                 char, self.one_char_image_size, 0, img_background
             )
             # Add the generated image to the list
             one_char_images.append(captcha["image"])
+            mask_one_char_images.append(mask_captcha["image"])
 
         # Join the characters images into one
         equation_str = str(eq_num1) + operation + str(eq_num2)
         one_char_images.insert(2, img_operator)
+        mask_one_char_images.insert(2, mask_operator)
         image = self.images_join_horizontal(one_char_images)
+        mask_image = self.images_join_horizontal(mask_one_char_images)
 
         # Add some random circles to the image
         for _ in range(0, DIFFICULT_LEVELS_VALUES[difficult_level][1]):
@@ -726,5 +751,8 @@ class CaptchaGenerator:
         # Return generated image captcha
         return MathsCaptchaModel(
             image=image, equation_str=equation_str,
+            equation_result=str(equation_result)
+        ), MathsCaptchaModel(
+            image=mask_image, equation_str=equation_str,
             equation_result=str(equation_result)
         )
