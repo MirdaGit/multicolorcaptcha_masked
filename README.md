@@ -8,16 +8,16 @@ Modified Python random image-captcha generator. Extends the original by adding t
 
 ### Original Ascii Captcha
 
-![Ascii Captcha](https://github.com/MirdaGit/multicolorcaptcha/raw/master/images/Ascii_original.png)
+![Ascii Captcha](https://github.com/MirdaGit/multicolorcaptcha_masked/blob/master/images/Ascii_original.png?raw=true)
 
 ### Masked Ascii Captcha
 
-![Masked Ascii Captcha](https://github.com/MirdaGit/multicolorcaptcha/raw/master/images/Ascii_masked.png)
+![Masked Ascii Captcha](https://github.com/MirdaGit/multicolorcaptcha_masked/blob/master/images/Ascii_masked.png?raw=true)
 
 ### Math Equation Captcha
 
-![Math Captcha](https://github.com/MirdaGit/multicolorcaptcha/raw/master/images/Math_original.png)
+![Math Captcha](https://github.com/MirdaGit/multicolorcaptcha_masked/blob/master/images/Math_original.png?raw=true)
 
 ### Masked Math Equation Captcha
 
-![Masked Math Captcha](https://github.com/MirdaGit/multicolorcaptcha/raw/master/images/Math_masked.png)
+![Masked Math Captcha](https://github.com/MirdaGit/multicolorcaptcha_masked/blob/master/images/Math_masked.png?raw=true)
