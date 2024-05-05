@@ -2,7 +2,12 @@
 
 Original repository: https://github.com/J-Rios/multicolorcaptcha
 
-Modified Python random image-captcha generator. Extends the original by adding the option to specify the number of characters given captcha should have(math captcha is always 4 numbers and an operator). Additionally each result from captcha generator is accompanied by a mask of the characters(white characters on black background).
+Modified Python random image-captcha generator. Extends the original functionality by adding option to:
+
+1. specify the number of characters given captcha should have(math captcha is always 4 numbers and an operator)
+2. specify font from the "fonts" folder, works the same way as the original if no font is specified
+
+Additionally each generated captcha is accompanied by a mask of the characters(white characters on black background).
 
 ## Generated Captchas Examples
 
